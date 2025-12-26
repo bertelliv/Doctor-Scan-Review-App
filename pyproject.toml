@@ -1,0 +1,18 @@
+[project]
+name = "doctor-scan-review"
+version = "0.1.0"
+description = "CLI workflow for reviewing mock medical scans"
+authors = [{name = "Doctor Scan Review"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12",
+  "rich>=13",
+]
+
+[project.scripts]
+doctor-scan-review = "doctor_scan_review.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
