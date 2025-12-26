@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 import typer
@@ -69,30 +68,36 @@ def _render_recent(session: ReviewSession, limit: int = 5) -> None:
     console.print(table)
 
 
-@app.command()
-def status() -> None:
-    """Show the current scan and review progress."""
+def _get_session(ctx: typer.Context) -> ReviewSession:
+    # ctx.obj is where shared state lives in Typer/Click
+    if ctx.obj is None:
+        raise typer.BadParameter("App context not initialized.")
+    return ctx.obj["session"]
 
-    session = app.state.session  # type: ignore[attr-defined]
+
+@app.command()
+def status(ctx: typer.Context) -> None:
+    """Show the current scan and review progress."""
+    session = _get_session(ctx)
     console.print(_format_scan_table(session))
     console.print(_format_summary_table(session))
 
 
 @app.command()
-def mark(decision: ReviewDecision) -> None:
+def mark(ctx: typer.Context, decision: ReviewDecision) -> None:
     """Mark the current scan as healthy or sick."""
-
-    session = app.state.session  # type: ignore[attr-defined]
+    session = _get_session(ctx)
     review = session.record_decision(decision)
-    console.print(f"Recorded {decision.label().lower()} for {review.patient_name} at {review.timestamp:%Y-%m-%d %H:%M:%S}.")
+    console.print(
+        f"Recorded {decision.label().lower()} for {review.patient_name} at {review.timestamp:%Y-%m-%d %H:%M:%S}."
+    )
     console.print(_format_summary_table(session))
 
 
 @app.command()
-def undo() -> None:
+def undo(ctx: typer.Context) -> None:
     """Undo the most recent review, if any."""
-
-    session = app.state.session  # type: ignore[attr-defined]
+    session = _get_session(ctx)
     undone = session.undo()
     if undone is None:
         console.print("No reviews to undo.")
@@ -102,24 +107,31 @@ def undo() -> None:
 
 
 @app.command("recent")
-def recent_reviews(limit: int = typer.Option(5, help="Number of recent reviews to show.")) -> None:
+def recent_reviews(
+    ctx: typer.Context,
+    limit: int = typer.Option(5, help="Number of recent reviews to show."),
+) -> None:
     """Display the most recent decisions."""
-
-    session = app.state.session  # type: ignore[attr-defined]
+    session = _get_session(ctx)
     _render_recent(session, limit=limit)
 
 
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context, seed: Optional[int] = typer.Option(None, help="Placeholder to mirror original app state.")) -> None:
+def main(
+    ctx: typer.Context,
+    seed: Optional[int] = typer.Option(None, help="Placeholder to mirror original app state."),
+) -> None:
     """Initialize a review session and optionally show status."""
+    ctx.ensure_object(dict)
 
-    # Lazy init of session so commands reuse one instance.
-    if not hasattr(app.state, "session"):
-        app.state.session = ReviewSession(load_default_scans())  # type: ignore[attr-defined]
+    # Lazy init of session so commands reuse one instance *for this process run*.
+    if "session" not in ctx.obj:
+        ctx.obj["session"] = ReviewSession(load_default_scans())
 
     if ctx.invoked_subcommand is None:
-        status()
+        status(ctx)
 
 
 if __name__ == "__main__":
     app()
+

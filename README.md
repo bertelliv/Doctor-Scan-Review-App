@@ -4,16 +4,18 @@ An idiomatic Python rewrite of the Doctor Scan Review app. The project now ships
 
 ## Getting started
 
-1. Create a virtual environment (optional but recommended):
+1. Install typer.
+
+2. Create a virtual environment (optional but recommended):
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
-2. Install the project in editable mode:
+3. Install the project in editable mode:
    ```bash
    pip install -e .
    ```
-3. Run the CLI:
+4. Run the CLI:
    ```bash
    doctor-scan-review
    ```
